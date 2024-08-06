@@ -105,3 +105,73 @@ func updateMapping(node *yaml.Node, path []string, newValue interface{}) error {
 
 	return fmt.Errorf("path not found: %s", strings.Join(path, "."))
 }
+
+func deleteNode(node *yaml.Node, path []string) error {
+	if len(path) == 0 {
+		return fmt.Errorf("empty path")
+	}
+
+	if node.Kind != yaml.DocumentNode {
+		return fmt.Errorf("expected document node")
+	}
+
+	return deleteMapping(node.Content[0], path)
+}
+
+func deleteMapping(node *yaml.Node, path []string) error {
+	if node.Kind != yaml.MappingNode {
+		return fmt.Errorf("expected mapping node")
+	}
+
+	for i := 0; i < len(node.Content); i += 2 {
+		key := node.Content[i]
+		value := node.Content[i+1]
+
+		if key.Value == path[0] {
+			if len(path) == 1 {
+				// We've reached the target field, remove it
+				node.Content = append(node.Content[:i], node.Content[i+2:]...)
+				return nil
+			}
+			// Continue traversing the path
+			return deleteMapping(value, path[1:])
+		}
+	}
+
+	return fmt.Errorf("path not found: %s", strings.Join(path, "."))
+}
+
+func replaceKey(node *yaml.Node, path []string, newKey string) error {
+	if len(path) == 0 {
+		return fmt.Errorf("empty path")
+	}
+
+	if node.Kind != yaml.DocumentNode {
+		return fmt.Errorf("expected document node")
+	}
+
+	return replaceKeyInMapping(node.Content[0], path, newKey)
+}
+
+func replaceKeyInMapping(node *yaml.Node, path []string, newKey string) error {
+	if node.Kind != yaml.MappingNode {
+		return fmt.Errorf("expected mapping node")
+	}
+
+	for i := 0; i < len(node.Content); i += 2 {
+		key := node.Content[i]
+		value := node.Content[i+1]
+
+		if key.Value == path[0] {
+			if len(path) == 1 {
+				// We've reached the target key, replace it
+				key.Value = newKey
+				return nil
+			}
+			// Continue traversing the path
+			return replaceKeyInMapping(value, path[1:], newKey)
+		}
+	}
+
+	return fmt.Errorf("path not found: %s", strings.Join(path, "."))
+}
