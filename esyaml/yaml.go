@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func ReplaceYAMLValue(yamlStr, path string, newValue interface{}) (string, error) {
+func SetYAMLValue(yamlStr, path string, newValue interface{}) (string, error) {
 	var node yaml.Node
 	err := yaml.Unmarshal([]byte(yamlStr), &node)
 	if err != nil {

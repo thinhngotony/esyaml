@@ -2,6 +2,8 @@ package esyaml
 
 import (
 	"fmt"
+	"math"
+	"reflect"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -95,8 +97,7 @@ func updateMapping(node *yaml.Node, path []string, newValue interface{}) error {
 		if key.Value == path[0] {
 			if len(path) == 1 {
 				// We've reached the target field, update its value
-				value.SetString(fmt.Sprintf("%v", newValue))
-				return nil
+				return updateNodeValue(value, newValue)
 			}
 			// Continue traversing the path
 			return updateMapping(value, path[1:], newValue)
@@ -104,6 +105,89 @@ func updateMapping(node *yaml.Node, path []string, newValue interface{}) error {
 	}
 
 	return fmt.Errorf("path not found: %s", strings.Join(path, "."))
+}
+
+func updateNodeValue(node *yaml.Node, newValue interface{}) error {
+	v := reflect.ValueOf(newValue)
+
+	switch v.Kind() {
+	case reflect.String:
+		node.Kind = yaml.ScalarNode
+		node.Tag = "!!str"
+		node.Value = v.String()
+
+	case reflect.Bool:
+		node.Kind = yaml.ScalarNode
+		node.Tag = "!!bool"
+		node.Value = fmt.Sprintf("%t", v.Bool())
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		node.Kind = yaml.ScalarNode
+		node.Tag = "!!int"
+		node.Value = fmt.Sprintf("%d", v.Int())
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		node.Kind = yaml.ScalarNode
+		node.Tag = "!!int"
+		node.Value = fmt.Sprintf("%d", v.Uint())
+
+	case reflect.Float32, reflect.Float64:
+		node.Kind = yaml.ScalarNode
+		node.Tag = "!!float"
+		f := v.Float()
+		if math.IsNaN(f) {
+			node.Value = ".nan"
+		} else if math.IsInf(f, 1) {
+			node.Value = ".inf"
+		} else if math.IsInf(f, -1) {
+			node.Value = "-.inf"
+		} else {
+			node.Value = fmt.Sprintf("%g", f)
+		}
+
+	case reflect.Slice, reflect.Array:
+		node.Kind = yaml.SequenceNode
+		node.Tag = "!!seq"
+		node.Content = make([]*yaml.Node, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			itemNode := &yaml.Node{}
+			if err := updateNodeValue(itemNode, v.Index(i).Interface()); err != nil {
+				return err
+			}
+			node.Content[i] = itemNode
+		}
+
+	case reflect.Map:
+		node.Kind = yaml.MappingNode
+		node.Tag = "!!map"
+		node.Content = make([]*yaml.Node, 0, v.Len()*2)
+		for _, key := range v.MapKeys() {
+			keyNode := &yaml.Node{}
+			valueNode := &yaml.Node{}
+			if err := updateNodeValue(keyNode, key.Interface()); err != nil {
+				return err
+			}
+			if err := updateNodeValue(valueNode, v.MapIndex(key).Interface()); err != nil {
+				return err
+			}
+			node.Content = append(node.Content, keyNode, valueNode)
+		}
+
+	case reflect.Ptr:
+		if v.IsNil() {
+			node.Kind = yaml.ScalarNode
+			node.Tag = "!!null"
+			node.Value = "null"
+		} else {
+			return updateNodeValue(node, v.Elem().Interface())
+		}
+
+	default:
+		fmt.Printf("unsupported type: %T", newValue)
+		return fmt.Errorf("unsupported type: %T", newValue)
+	}
+
+	return nil
 }
 
 func deleteNode(node *yaml.Node, path []string) error {

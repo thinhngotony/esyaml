@@ -27,7 +27,7 @@ spec:
 
 	// --- Test update ---
 	fmt.Println("\n--- Test update ---")
-	updatedYAML, err := esyaml.ReplaceYAMLValue(yamlStr, "spec.name", "newName")
+	updatedYAML, err := esyaml.SetYAMLValue(yamlStr, "spec.name", "newName")
 	if err != nil {
 		fmt.Println("Error updating value:", err)
 		return
@@ -57,7 +57,7 @@ spec:
 
 	// --- Test replace value ---
 	fmt.Println("\n--- Test replace value ---")
-	replacedValueYAML, err := esyaml.ReplaceYAMLValue(yamlStr, "spec.value", "new-value")
+	replacedValueYAML, err := esyaml.SetYAMLValue(yamlStr, "spec.value", "new-value")
 	if err != nil {
 		fmt.Println("Error replacing value:", err)
 		return
