@@ -259,3 +259,58 @@ func replaceKeyInMapping(node *yaml.Node, path []string, newKey string) error {
 
 	return fmt.Errorf("path not found: %s", strings.Join(path, "."))
 }
+
+func insertNode(node *yaml.Node, path []string, newValue interface{}) error {
+	if len(path) == 0 {
+		return fmt.Errorf("empty path")
+	}
+
+	if node.Kind != yaml.DocumentNode {
+		return fmt.Errorf("expected document node")
+	}
+
+	return insertIntoMapping(node.Content[0], path, newValue)
+}
+
+func insertIntoMapping(node *yaml.Node, path []string, newValue interface{}) error {
+	if node.Kind != yaml.MappingNode {
+		return fmt.Errorf("expected mapping node")
+	}
+
+	for i := 0; i < len(node.Content); i += 2 {
+		key := node.Content[i]
+		value := node.Content[i+1]
+
+		if key.Value == path[0] {
+			if len(path) == 1 {
+				// We've reached the target location, update the value
+				return updateNodeValue(value, newValue)
+			}
+			// Continue traversing the path
+			return insertIntoMapping(value, path[1:], newValue)
+		}
+	}
+
+	// If we're here, the key doesn't exist in the current mapping
+	// We need to create it and any intermediate structures
+	return createPath(node, path, newValue)
+}
+
+func createPath(node *yaml.Node, path []string, newValue interface{}) error {
+	for _, part := range path[:len(path)-1] {
+		keyNode := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: part}
+		valueNode := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+		node.Content = append(node.Content, keyNode, valueNode)
+		node = valueNode
+	}
+
+	// Insert the final key-value pair
+	keyNode := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: path[len(path)-1]}
+	valueNode := &yaml.Node{}
+	if err := updateNodeValue(valueNode, newValue); err != nil {
+		return err
+	}
+	node.Content = append(node.Content, keyNode, valueNode)
+
+	return nil
+}

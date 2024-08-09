@@ -64,4 +64,14 @@ spec:
 	}
 	fmt.Println("Replaced YAML:")
 	fmt.Println(replacedValueYAML)
+
+	// --- Test insert value ---
+	fmt.Println("\n--- Test replace value ---")
+	insertedValueYAML, err := esyaml.InsertYAML(yamlStr, "spec.replicas", 2)
+	if err != nil {
+		fmt.Println("Error replacing value:", err)
+		return
+	}
+	fmt.Println("Inserted YAML:")
+	fmt.Println(insertedValueYAML)
 }
