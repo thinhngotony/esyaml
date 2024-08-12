@@ -106,3 +106,20 @@ func InsertYAML(yamlStr, path string, newValue interface{}) (string, error) {
 
 	return string(updatedYAML), nil
 }
+
+func MustSetYAMLValue(yamlStr, fieldName string, newValue interface{}) (string, error) {
+	var node yaml.Node
+	err := yaml.Unmarshal([]byte(yamlStr), &node)
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal YAML: %w", err)
+	}
+
+	updateAllOccurrences(&node, fieldName, newValue)
+
+	updatedYAML, err := yaml.Marshal(&node)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal updated YAML: %w", err)
+	}
+
+	return string(updatedYAML), nil
+}

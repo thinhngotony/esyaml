@@ -6,6 +6,38 @@ import (
 	"main/esyaml" // Replace with the actual import path
 )
 
+const test = `apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: ubuntu-deployment
+spec:
+  selector:
+    matchLabels:
+      app: ubuntu
+  replicas: 10 # amount of pods must be > 1
+  template:
+    metadata:
+      labels:
+        app: ubuntu
+    spec:
+      containers:
+      - name: ubuntu
+        image: ubuntu
+        command:
+        - sleep
+        - "infinity"
+        volumeMounts:
+        - mountPath: /app/folder
+          name: volume
+      volumes:
+      - name: volume
+        persistentVolumeClaim:
+          claimName: new-value
+      - name: volume2
+        persistentVolumeClaim:
+          claimName: new-value		  
+`
+
 func main() {
 	// Define the original YAML string.
 	yamlStr := `
@@ -74,4 +106,15 @@ spec:
 	}
 	fmt.Println("Inserted YAML:")
 	fmt.Println(insertedValueYAML)
+
+	// --- Test replace value ---
+	fmt.Println("\n--- Test must set value ---")
+	mustSetValueYAML, err := esyaml.MustSetYAMLValue(test, "claimName", "new-value")
+	if err != nil {
+		fmt.Println("Error must set:", err)
+		return
+	}
+	fmt.Println("Must set YAML:")
+	fmt.Println(mustSetValueYAML)
+
 }

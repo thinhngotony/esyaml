@@ -314,3 +314,23 @@ func createPath(node *yaml.Node, path []string, newValue interface{}) error {
 
 	return nil
 }
+
+func updateAllOccurrences(node *yaml.Node, fieldName string, newValue interface{}) {
+	switch node.Kind {
+	case yaml.DocumentNode, yaml.SequenceNode:
+		for i := range node.Content {
+			updateAllOccurrences(node.Content[i], fieldName, newValue)
+		}
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			key := node.Content[i]
+			value := node.Content[i+1]
+
+			if key.Value == fieldName {
+				updateNodeValue(value, newValue)
+			} else {
+				updateAllOccurrences(value, fieldName, newValue)
+			}
+		}
+	}
+}
