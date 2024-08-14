@@ -123,3 +123,20 @@ func MustSetYAMLValue(yamlStr, fieldName string, newValue interface{}) (string, 
 
 	return string(updatedYAML), nil
 }
+
+func MustPrependYAMLValue(yamlStr, fieldName string, prependValue string) (string, error) {
+	var node yaml.Node
+	err := yaml.Unmarshal([]byte(yamlStr), &node)
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal YAML: %w", err)
+	}
+
+	prependAllOccurrences(&node, fieldName, prependValue)
+
+	updatedYAML, err := yaml.Marshal(&node)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal updated YAML: %w", err)
+	}
+
+	return string(updatedYAML), nil
+}

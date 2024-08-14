@@ -334,3 +334,40 @@ func updateAllOccurrences(node *yaml.Node, fieldName string, newValue interface{
 		}
 	}
 }
+
+func prependAllOccurrences(node *yaml.Node, fieldName string, prependValue string) {
+	switch node.Kind {
+	case yaml.DocumentNode, yaml.SequenceNode:
+		for i := range node.Content {
+			prependAllOccurrences(node.Content[i], fieldName, prependValue)
+		}
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			key := node.Content[i]
+			value := node.Content[i+1]
+
+			if key.Value == fieldName {
+				prependNodeValue(value, prependValue)
+			} else {
+				prependAllOccurrences(value, fieldName, prependValue)
+			}
+		}
+	}
+}
+
+func prependNodeValue(node *yaml.Node, prependValue string) {
+	switch node.Kind {
+	case yaml.ScalarNode:
+		node.Value = prependValue + node.Value
+	case yaml.SequenceNode:
+		for _, item := range node.Content {
+			prependNodeValue(item, prependValue)
+		}
+	case yaml.MappingNode:
+		// If the node is a mapping, we don't prepend to its keys or values
+		// But we can recursively search its values if needed
+		for i := 1; i < len(node.Content); i += 2 {
+			prependNodeValue(node.Content[i], prependValue)
+		}
+	}
+}

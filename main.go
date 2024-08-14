@@ -117,4 +117,14 @@ spec:
 	fmt.Println("Must set YAML:")
 	fmt.Println(mustSetValueYAML)
 
+	// --- Test must prepend value ---
+	fmt.Println("\n--- Test must prepend value ---")
+	mustPrependValueYAML, err := esyaml.MustPrependYAMLValue(test, "claimName", "new-value-")
+	if err != nil {
+		fmt.Println("Error must prepend set:", err)
+		return
+	}
+	fmt.Println("Must prepend YAML:")
+	fmt.Println(mustPrependValueYAML)
+
 }
