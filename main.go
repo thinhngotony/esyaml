@@ -6,7 +6,7 @@ import (
 	"main/esyaml" // Replace with the actual import path
 )
 
-const test = `apiVersion: apps/v1 
+const deployment = `apiVersion: apps/v1 
 kind: Deployment
 metadata:
   name: ubuntu-deployment
@@ -36,6 +36,33 @@ spec:
       - name: volume2
         persistentVolumeClaim:
           claimName: new-value		  
+`
+
+const template = `apiVersion: apps/v1
+# ở đây phiên bản cũ hơn của kubernetes có dạng extensions/v1beta1
+kind: Deployment
+# kind là loại Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 2
+  # replica ở đây sẽ tạo ra 2 pods luôn luôn chạy, khi một số pods bị down hay chết hay bất kì lý do nào đó sẽ tự động tạo lại số lượng pods bằng 2
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  template:
+    metadata:
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - name: nginx-deployment
+      - tony: {{Add-on.Name}}
+      # image của container docker
+        image: nginx
+        ports:
+        # port bên trong container
+        - containerPort: 8080
 `
 
 func main() {
@@ -109,7 +136,7 @@ spec:
 
 	// --- Test replace value ---
 	fmt.Println("\n--- Test must set value ---")
-	mustSetValueYAML, err := esyaml.MustSetYAMLValue(test, "claimName", "new-value")
+	mustSetValueYAML, err := esyaml.MustSetYAMLValue(deployment, "claimName", "new-value")
 	if err != nil {
 		fmt.Println("Error must set:", err)
 		return
@@ -119,12 +146,22 @@ spec:
 
 	// --- Test must prepend value ---
 	fmt.Println("\n--- Test must prepend value ---")
-	mustPrependValueYAML, err := esyaml.MustPrependYAMLValue(test, "claimName", "new-value-")
+	mustPrependValueYAML, err := esyaml.MustPrependYAMLValue(deployment, "claimName", "new-value-")
 	if err != nil {
 		fmt.Println("Error must prepend set:", err)
 		return
 	}
 	fmt.Println("Must prepend YAML:")
 	fmt.Println(mustPrependValueYAML)
+
+	// --- Test parse template value ---
+	fmt.Println("\n--- Test parse template value ---")
+	parsedYAML, err := esyaml.AddTmlValue(template, "add-on.Name", "added")
+	if err != nil {
+		fmt.Println("Error parse template set:", err)
+		return
+	}
+	fmt.Println("Parsed template YAML:")
+	fmt.Println(parsedYAML)
 
 }
